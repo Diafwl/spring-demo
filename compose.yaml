@@ -1,0 +1,33 @@
+name: demo
+
+services:
+  roach1:
+    image: ${COCKROACH_IMAGE:-cockroachdb/cockroach:latest-v25.2}
+    hostname: roach1
+    command: start-single-node --insecure --listen-addr=:26257 --http-addr=:8080
+    ports:
+      - "26257:26257"
+      - "8081:8080"
+    volumes:
+      - roach1:/cockroach/cockroach-data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health?ready=1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build: ./app
+    image: demo-api:latest
+    environment:
+      DB_URL: ${DB_URL:-jdbc:postgresql://roach1:26257/defaultdb?sslmode=disable}
+      DB_USER: root
+    ports:
+      - "8080:8080"
+    depends_on:
+      roach1:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  roach1:

@@ -1,0 +1,65 @@
+x-roach: &roach
+  image: ${COCKROACH_IMAGE:-cockroachdb/cockroach:latest-v25.2}
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://localhost:8080/health?ready=1"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+
+services:
+  roach1:
+    command: start --insecure --listen-addr=:26257 --http-addr=:8080 --advertise-addr=roach1:26257 --join=roach1:26257,roach2:26257,roach3:26257
+    volumes:
+      - roach1-cluster:/cockroach/cockroach-data
+
+  roach2:
+    <<: *roach
+    hostname: roach2
+    command: start --insecure --listen-addr=:26257 --http-addr=:8080 --advertise-addr=roach2:26257 --join=roach1:26257,roach2:26257,roach3:26257
+    ports:
+      - "8082:8080"
+    volumes:
+      - roach2-cluster:/cockroach/cockroach-data
+
+  roach3:
+    <<: *roach
+    hostname: roach3
+    command: start --insecure --listen-addr=:26257 --http-addr=:8080 --advertise-addr=roach3:26257 --join=roach1:26257,roach2:26257,roach3:26257
+    ports:
+      - "8083:8080"
+    volumes:
+      - roach3-cluster:/cockroach/cockroach-data
+
+  roach-init:
+    image: ${COCKROACH_IMAGE:-cockroachdb/cockroach:latest-v25.2}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        for i in $$(seq 1 30); do
+          out=$$(/cockroach/cockroach init --insecure --host=roach1:26257 2>&1) && { echo "$$out"; exit 0; }
+          echo "$$out" | grep -q "already been initialized" && { echo "cluster already initialized"; exit 0; }
+          sleep 2
+        done
+        echo "$$out"
+        exit 1
+    depends_on:
+      - roach1
+      - roach2
+      - roach3
+    restart: "no"
+
+  api:
+    environment:
+      DB_URL: ${DB_URL:-jdbc:postgresql://roach1:26257,roach2:26257,roach3:26257/defaultdb?sslmode=disable&loadBalanceHosts=true}
+    depends_on:
+      roach-init:
+        condition: service_completed_successfully
+      roach2:
+        condition: service_healthy
+      roach3:
+        condition: service_healthy
+
+volumes:
+  roach1-cluster:
+  roach2-cluster:
+  roach3-cluster:

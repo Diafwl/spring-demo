@@ -1,0 +1,46 @@
+networkPolicy:
+  enabled: false
+
+cockroachdb:
+  enabled: true
+  statefulSet:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: "2"
+        memory: 2Gi
+  conf:
+    single-node: true
+    cache: 25%
+    max-sql-memory: 25%
+  tls:
+    enabled: false
+  storage:
+    persistentVolume:
+      size: 10Gi
+      storageClass: longhorn
+
+api:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/YOUR_GITHUB/demo-api
+    tag: v1
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: false
+    className: traefik
+    host: demo.example.local
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

@@ -1,0 +1,70 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/YOUR_GITHUB/demo-api
+  tag: v1
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  path: /
+  pathType: Prefix
+
+database:
+  host: ""
+  port: 26257
+  name: defaultdb
+  user: root
+  password: ""
+  sslmode: disable
+  existingSecret: ""
+  existingSecretKey: db-password
+
+config:
+  logLevel: INFO
+  poolSize: 10
+  extraEnv: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  periodSeconds: 10
+  failureThreshold: 3
+readinessProbe:
+  periodSeconds: 5
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1

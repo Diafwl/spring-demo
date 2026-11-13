@@ -1,0 +1,22 @@
+networkPolicy:
+  enabled: true
+
+cockroachdb:
+  statefulSet:
+    replicas: 3
+  conf:
+    single-node: false
+
+api:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/actuator/prometheus"
